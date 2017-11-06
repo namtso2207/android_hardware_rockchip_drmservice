@@ -78,6 +78,7 @@ typedef		unsigned char	    uint8;
 #define VENDOR_WIFI_MAC_ID	2
 #define VENDOR_LAN_MAC_ID	3
 #define VENDOR_BLUETOOTH_ID	4
+#define VENDOR_LOCK_ID      5
 
 #define DEBUG_LOG 1   //open debug info
 
@@ -406,6 +407,59 @@ int rknand_sys_storage_test_hid(void)
 
 
 
+int rkvendor_storage_read(uint16 id, char* pBuf)
+{
+    int ret = 0;
+    struct rk_vendor_req req;
+
+    int sys_fd = open("/dev/vendor_storage",O_RDWR,0);
+    if(sys_fd < 0){
+        ALOGE("vendor_storage open fail\n");
+        return -1;
+    }
+
+    req.tag = VENDOR_REQ_TAG;
+    req.id = id;
+    req.len = RKNAND_SYS_STORGAE_DATA_LEN; /* max read length to read*/
+    ret = ioctl(sys_fd, VENDOR_READ_IO, &req);
+    close(sys_fd);
+    /* return req->len is the real data length stored in the NV-storage */
+    if(ret){
+        ALOGE("vendor read error");
+        return -1;
+    }
+    rknand_print_hex_data("vendor read:", (uint32*)req.data, req.len/4 + 3);
+    strncpy(pBuf,req.data,req.len);
+
+    return ret;
+}
+
+int rkvendor_storage_write(uint16 id, char* pBuf)
+{
+    int ret = 0;
+    struct rk_vendor_req req;
+
+    int sys_fd = open("/dev/vendor_storage",O_RDWR,0);
+    if(sys_fd < 0){
+        ALOGE("vendor_storage open fail\n");
+        return -1;
+    }
+
+    req.tag = VENDOR_REQ_TAG;
+    req.id = id;
+    req.len = strlen(pBuf); /* max read length to write*/
+    strncpy(req.data,pBuf,req.len);
+    rknand_print_hex_data("vendor write:", (uint32*)req.data, req.len/4 + 3);
+
+    ret = ioctl(sys_fd, VENDOR_WRITE_IO, &req);
+    close(sys_fd);
+    /* return req->len is the real data length stored in the NV-storage */
+    if(ret){
+        ALOGE("vendor write error");
+    }
+    return ret;
+}
+
 int vendor_storage_read_sn(void)
 {
     uint32 i;
@@ -415,7 +469,7 @@ int vendor_storage_read_sn(void)
     memset(sn_buf_idb,0,sizeof(sn_buf_idb));
 	int sys_fd = open("/dev/vendor_storage",O_RDWR,0);
 	if(sys_fd < 0){
-		SLOGE("vendor_storage open fail\n");		
+		SLOGE("vendor_storage open fail\n");
 		goto try_drmboot;
 	}
 	
@@ -873,6 +927,10 @@ void copy_dir(const char *old_path,const char *new_path)
 	free(root_dir_abs_path);
 }
 
+int write_oem_unlocked2vendor(char* oem_unlocked){
+    return rkvendor_storage_write(VENDOR_LOCK_ID, oem_unlocked);
+}
+
 
 
 
@@ -882,6 +940,14 @@ void copy_dir(const char *old_path,const char *new_path)
 int main( int argc, char *argv[] )
 {
 	SLOGE("----------------running drmservice---------------");
+
+    if (argc>1){
+        //when argc <= 1, running default service
+        if (0 == strcmp(argv[1], "oem_unlocked")){
+            SLOGE("set oem");
+            return write_oem_unlocked2vendor(argv[2]);
+        }
+    }
     char propbuf_source[PROPERTY_VALUE_MAX];
 	char propbuf_dest[PROPERTY_VALUE_MAX];
 	char prop_board_platform[PROPERTY_VALUE_MAX];
