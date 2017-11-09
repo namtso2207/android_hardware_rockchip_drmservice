@@ -1,11 +1,3 @@
 service drmservice /vendor/bin/drmservice
-    class main
-    oneshot
-
-service drmservice_set_oem /vendor/bin/drmservice oem_unlocked ${sys.oem_unlock_allowed}
-    class main
-    disabled
-    oneshot
-
-on property:sys.oem_unlock_allowed=* && property:partition.system.verified=* && property:partition.vendor.verified=*
-    start drmservice_set_oem
+        class main
+        oneshot
