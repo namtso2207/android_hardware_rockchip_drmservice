@@ -812,15 +812,15 @@ char *get_abs_path(const char *dir,const char *path)
 		return NULL;
 	}
 	bzero(rel_path,d_len+p_len+2);
-	
+
 	strncpy(rel_path,dir,d_len);
 	strncat(rel_path,"/",sizeof(char));
 	strncat(rel_path,path,p_len);
-	
+
 	return rel_path;
 }
 
-void copy_dir(const char *old_path,const char *new_path)
+void copy_dir_at(const char *root_path, const char *old_path, const char *new_path, int can_del)
 {
 	DIR *dir;
 	struct stat buf;
@@ -831,12 +831,12 @@ void copy_dir(const char *old_path,const char *new_path)
 		SLOGE("opendir %s fail\n",old_path);
 		return;
 	}
-	mkdir("/data/media/0",0755);//in case /data/media/0 not created
-	char *root_dir_abs_path = get_abs_path("/data/media/0",new_path);
+	mkdir(root_path,0755);//in case root_path not created
+	char *root_dir_abs_path = get_abs_path(root_path, new_path);
 	SLOGE("--root_dir_abs_path =%s--\n",root_dir_abs_path);
-	if(mkdir(root_dir_abs_path,0777)==-1)
+	if((mkdir(root_dir_abs_path,0777)==-1) && errno != EEXIST)
 	{
-		SLOGE("mkdir %s fail \n",root_dir_abs_path);
+		SLOGE("mkdir %s fail, %s \n",root_dir_abs_path, strerror(errno));
 		free(root_dir_abs_path);
 		return;
 	}
@@ -854,7 +854,7 @@ void copy_dir(const char *old_path,const char *new_path)
 		{
 			char * sub_dir_abs_path = get_abs_path(new_path,dirp->d_name);
 			SLOGE("--subdir abs path =%s\n",sub_dir_abs_path);
-			copy_dir(dirp->d_name,sub_dir_abs_path);
+			copy_dir_at(root_path, dirp->d_name, sub_dir_abs_path, can_del);
 			free(sub_dir_abs_path);
 			continue;
 		}
@@ -862,19 +862,37 @@ void copy_dir(const char *old_path,const char *new_path)
 		SLOGE("--file abs path =%s\n",file_abs_path);
 		copy_file(dirp->d_name,file_abs_path);
 		chmod(file_abs_path,S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IXOTH);
-		//chown(file_abs_path,1023,1023);//if want to deleteable,open this
+		if (can_del)
+		{
+			chown(file_abs_path,1023,1023);//if want to deleteable,open this
+		}
 		free(file_abs_path);
 	}
 
 	closedir(dir);
 	change_path(p);
 	chmod(root_dir_abs_path,S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IXOTH);
-	//chown(root_dir_abs_path,1023,1023);//if want to deleteable,open this
+	if (can_del)
+	{
+		SLOGD("set files can be deleted.");
+		chown(root_dir_abs_path,1023,1023);//if want to deleteable,open this
+	}
 	free(root_dir_abs_path);
 }
 
+/**
+ *  User cannot del or modify the content that copyed form '/oem/pre_set',
+ *  only '/oem/pre_set_del' can do that.
+ */
+void copy_oem()
+{
+	if(DEBUG_LOG) SLOGE("---do bootup copy oem---");
 
+	copy_dir_at("", "/oem/pre_set_del", "data", 1);
+	copy_dir_at("", "/oem/pre_set", "data", 0);
 
+	if(DEBUG_LOG) SLOGE("---do bootup copy oem---");
+}
 
 /** * Program entry pointer *
  * @return 0 for success, -1 for SLOGE
@@ -882,12 +900,10 @@ void copy_dir(const char *old_path,const char *new_path)
 int main( int argc, char *argv[] )
 {
 	SLOGE("----------------running drmservice---------------");
-    char propbuf_source[PROPERTY_VALUE_MAX];
-	char propbuf_dest[PROPERTY_VALUE_MAX];
 	char prop_board_platform[PROPERTY_VALUE_MAX];
-	property_get("ro.boot.copy_source", propbuf_source, "");
-	property_get("ro.boot.copy_dest", propbuf_dest, "");
+	char propbuf_copy_oem[PROPERTY_VALUE_MAX];
 	property_get("ro.board.platform", prop_board_platform, "");
+	property_get("ro.boot.copy_oem", propbuf_copy_oem, "");
 
     //get hid data
     rknand_sys_storage_test_hid();
@@ -910,7 +926,7 @@ int main( int argc, char *argv[] )
 	}
 	/*bool keybox=detect_keybox();
 	if(keybox==true)
-	{    
+	{
 		property_set("drm.service.enabled","true");
 		SLOGE("detect keybox enabled");
 	}
@@ -920,13 +936,12 @@ int main( int argc, char *argv[] )
 		SLOGE("detect keybox disabled");
 	}*/
 	detect_secure_boot();
-	if ((*propbuf_source != '\0')&&( *propbuf_dest != '\0')) {
+	//Only set 'ro.boot.copy_oem = true', run this.
+	if (strcmp(*propbuf_copy_oem, "true") == 0) {
 		char prop_buf[PROPERTY_VALUE_MAX];
 		property_get("persist.sys.first_booting", prop_buf, "");
 		if(strcmp(prop_buf,"false")){//if want to only copy after recovery,open this
-			SLOGE("---do bootup copy from %s to %s",propbuf_source,propbuf_dest);
-			copy_dir(propbuf_source,propbuf_dest);
-			SLOGE("---done bootup copy--");
+			copy_oem();
 		}
 	}
 
@@ -938,5 +953,5 @@ int main( int argc, char *argv[] )
     //rknand_sys_storage_get_loader_status(&status);
     //rknand_sys_storage_unlock_loader();
     //rknand_sys_storage_get_loader_status(&status);
-	return 0;	
+	return 0;
 }
