@@ -937,7 +937,7 @@ int main( int argc, char *argv[] )
 	}*/
 	detect_secure_boot();
 	//Only set 'ro.boot.copy_oem = true', run this.
-	if (strcmp(*propbuf_copy_oem, "true") == 0) {
+	if (strcmp(propbuf_copy_oem, "true") == 0) {
 		char prop_buf[PROPERTY_VALUE_MAX];
 		property_get("persist.sys.first_booting", prop_buf, "");
 		if(strcmp(prop_buf,"false")){//if want to only copy after recovery,open this
