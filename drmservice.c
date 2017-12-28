@@ -570,6 +570,25 @@ int store_serialno(char* serialno)
 	return 0;
 }
 
+int store_metadata_forgpu()
+{
+	FILE *mac = NULL;
+	char buf[100];
+	mac = fopen("/metadata/view_cts.ini", "w+");
+	if(mac == NULL)
+	{
+		SLOGE("----------------------open /metadata/view_cts_ini failed\n");
+		return -1;
+	}
+	sprintf(buf,"%s\n%s\n%s\n","[android.view.cts]","view_cts=0","big_scale=0");
+	//SLOGE("---store_metadata_forgpu,buf=%s\n",buf);
+	fputs(buf,mac);
+	fclose(mac);
+	chmod("/metadata/view_cts.ini",S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IWOTH);
+	return 0;
+
+}
+
 int get_serialno_cached(char * result,int len)
 {
         int fd,readlen;
@@ -944,6 +963,7 @@ int main( int argc, char *argv[] )
 			copy_oem();
 		}
 	}
+	store_metadata_forgpu();
 
 	//read_region_tag();//add by xzj to add property ro.board.zone read from flash
 	//rknand_sys_storage_vendor_sector_store();
