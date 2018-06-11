@@ -81,7 +81,7 @@ typedef		unsigned char	    uint8;
 
 #define DEBUG_LOG 1   //open debug info
 
-#define SERIALNO_FROM_IDB 0  //if 1 read sn from idb3;  if 0 generate sn auto
+#define SERIALNO_FROM_IDB 1  //if 1 read sn from idb3;  if 0 generate sn auto
 
 #define SET_IFACE_DELAY                 300000
 #define SET_IFACE_POLLING_LOOP          20
@@ -931,10 +931,11 @@ int main( int argc, char *argv[] )
 
 	if(SERIALNO_FROM_IDB)//read serialno form idb
 	{
-		vendor_storage_read_sn();
-		property_set("sys.serialno", sn_buf_idb[0] ? sn_buf_idb : "");
-        	write_serialno2kernel(sn_buf_idb);
-		SLOGE("get serialno from idb,serialno = %s",sn_buf_idb);
+        generate_device_serialno(10,sn_buf_auto);
+        vendor_storage_read_sn();
+        property_set("sys.serialno", sn_buf_idb[0] ? sn_buf_idb : sn_buf_auto);
+        sn_buf_idb[0] ? write_serialno2kernel(sn_buf_idb) : write_serialno2kernel(sn_buf_auto) ;
+        SLOGE("get serialno from idb,serialno = %s",sn_buf_idb[0] ? sn_buf_idb : sn_buf_auto);
 	}
 	else//auto generate serialno
 	{
