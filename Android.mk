@@ -15,8 +15,7 @@ LOCAL_MODULE:=drmservice
 LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE_TAGS := optional
 LOCAL_INIT_RC := drmservice.rc
-LOCAL_STATIC_LIBRARIES := libfs_mgr libcutils 
-#libc
+LOCAL_STATIC_LIBRARIES := libcutils
 
 LOCAL_SHARED_LIBRARIES := libhardware_legacy libnetutils liblog
 
