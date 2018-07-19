@@ -16,6 +16,11 @@ LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE_TAGS := optional
 LOCAL_INIT_RC := drmservice.rc
 LOCAL_STATIC_LIBRARIES := libfs_mgr libcutils 
+LOCAL_CPPFLAGS := \
+    -Werror \
+    -Wunused-variable \
+    -Wmacro-redefined
+
 #libc
 
 LOCAL_SHARED_LIBRARIES := libhardware_legacy libnetutils liblog
