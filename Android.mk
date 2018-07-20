@@ -11,10 +11,10 @@ LOCAL_MULTILIB := 32
 LOCAL_C_INCLUDES += bionic \
 $(call include-path-for, libhardware_legacy)/hardware_legacy
 
-LOCAL_MODULE:=drmservice
+LOCAL_MODULE := rockchip.drmservice
 LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE_TAGS := optional
-LOCAL_INIT_RC := drmservice.rc
+LOCAL_INIT_RC := init.rockchip.drmservice.rc
 LOCAL_STATIC_LIBRARIES := libcutils 
 LOCAL_CPPFLAGS := \
     -Werror \
