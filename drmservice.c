@@ -359,7 +359,7 @@ int rknand_sys_storage_test_sn(void)
 	len =0;
     }
     memcpy(sn_buf_idb,(sysData.data)+2,len);
-    //property_set("sys.serialno",sn_buf_idb);
+    //property_set("vendor.serialno",sn_buf_idb);
     return 0;
 }
 
@@ -400,7 +400,7 @@ int rknand_sys_storage_test_hid(void)
 	len =0;
     }
     memcpy(hid_buf_idb,(sysData.data)+192,len);
-    //property_set("sys.serialno",sn_buf_idb);
+    //property_set("vendor.serialno",sn_buf_idb);
     return 0;
 }
 
@@ -442,7 +442,7 @@ int vendor_storage_read_sn(void)
     }	
     memcpy(sn_buf_idb,req.data,len);
     SLOGE("vendor read sn_buf_idb:%s\n",sn_buf_idb);
-    //property_set("sys.serialno",sn_buf_idb);   
+    //property_set("vendor.serialno",sn_buf_idb);   
     return 0;
 
 try_drmboot:
@@ -933,14 +933,14 @@ int main( int argc, char *argv[] )
 	{
         generate_device_serialno(10,sn_buf_auto);
         vendor_storage_read_sn();
-        property_set("sys.serialno", sn_buf_idb[0] ? sn_buf_idb : sn_buf_auto);
+        property_set("vendor.serialno", sn_buf_idb[0] ? sn_buf_idb : sn_buf_auto);
         sn_buf_idb[0] ? write_serialno2kernel(sn_buf_idb) : write_serialno2kernel(sn_buf_auto) ;
         SLOGE("get serialno from idb,serialno = %s",sn_buf_idb[0] ? sn_buf_idb : sn_buf_auto);
 	}
 	else//auto generate serialno
 	{
 		generate_device_serialno(10,sn_buf_auto);
-		property_set("sys.serialno", sn_buf_auto[0] ? sn_buf_auto : "");
+		property_set("vendor.serialno", sn_buf_auto[0] ? sn_buf_auto : "");
        		 write_serialno2kernel(sn_buf_auto);
 		SLOGE("auto generate serialno,serialno = %s",sn_buf_auto);
 	}
