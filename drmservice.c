@@ -26,7 +26,7 @@
 #define DRIVER_MODULE_PATH_SECOND  "/system/lib/modules/rkwifi.ko"
 #define DRIVER_MODULE_NAME "wlan"
 #define WLAN_MAC_FILE "/data/misc/wifi/wlan_mac"
-#define DEVICE_SERIALNO "/data/misc/wifi/serialno"
+#define DEVICE_SERIALNO "/data/ota/serialno"
 #define USB_SERIAL_PATH "/sys/class/android_usb/android0/iSerial"
 #define USB_SERIAL_PATH1 "/config/usb_gadget/g1/strings/0x409/serialnumber"
 
@@ -556,7 +556,7 @@ int store_serialno(char* serialno)
 		}
 	}
 
-	mac = fopen(DEVICE_SERIALNO, "w");
+	mac = fopen(DEVICE_SERIALNO, "w+");
 	if (mac == NULL)
 	{
 		if(DEBUG_LOG)
