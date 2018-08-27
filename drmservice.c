@@ -29,6 +29,7 @@
 #define DEVICE_SERIALNO "/data/ota/serialno"
 #define USB_SERIAL_PATH "/sys/class/android_usb/android0/iSerial"
 #define USB_SERIAL_PATH1 "/config/usb_gadget/g1/strings/0x409/serialnumber"
+#define GPU_METADATA_PATH "/data/ota/view_cts.ini"
 
 extern int init_module(void *, unsigned long, const char *);
 extern int delete_module(const char *, unsigned int);
@@ -574,17 +575,17 @@ int store_metadata_forgpu()
 {
 	FILE *mac = NULL;
 	char buf[100];
-	mac = fopen("/metadata/view_cts.ini", "w+");
+	mac = fopen(GPU_METADATA_PATH, "w+");
 	if(mac == NULL)
 	{
-		SLOGE("----------------------open /metadata/view_cts_ini failed\n");
+		SLOGE("---%s open failed\n",GPU_METADATA_PATH);
 		return -1;
 	}
 	sprintf(buf,"%s\n%s\n%s\n%s\n%s\n","[android.view.cts]","view_cts=0","big_scale=0","[android.autofillservice.cts]","is_auto_fill=0");
 	//SLOGE("---store_metadata_forgpu,buf=%s\n",buf);
 	fputs(buf,mac);
 	fclose(mac);
-	chmod("/metadata/view_cts.ini",S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IWOTH);
+	chmod(GPU_METADATA_PATH,S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IWOTH);
 	return 0;
 
 }
