@@ -462,7 +462,7 @@ void read_region_tag()
     int sys_fd = open("/dev/rknand_sys_storage",O_RDWR,0);
 	if(sys_fd < 0){
 		SLOGE("rknand_sys_storage open fail\n");
-		property_set("ro.board.zone","0");
+		property_set("ro.vendor.board.zone","0");
 		SLOGE("open file failed,ro.board.zone set default value 0\n");
 		return;
 	}
@@ -480,18 +480,18 @@ void read_region_tag()
 		SLOGE("------get region=%c",region_tag[0]);
 		if(region_tag[0]>='0'&&region_tag[0]<='5')
 		{
-			property_set("ro.board.zone",region_tag);
-			SLOGE("we set ro.board.zone to %c\n",region_tag[0]);
+			property_set("ro.vendor.board.zone",region_tag);
+			SLOGE("we set ro.vendor.board.zone to %c\n",region_tag[0]);
 		}
 		else
 		{
-			property_set("ro.board.zone","0");
+			property_set("ro.vendor.board.zone","0");
 			SLOGE("get SLOGE region tag from flash,not between 0-4,ro.board.zone set default value 0\n");		
 		}
 	}
 	else
 	{
-		property_set("ro.board.zone","0");
+		property_set("ro.vendor.board.zone","0");
 		SLOGE("get SLOGE region tag from flash,not between 0-4,ro.board.zone set default value 0\n");		
 	}
 }
@@ -766,11 +766,11 @@ void detect_secure_boot()
 	if(strstr(buf,"SecureBootCheckOk=1")!=NULL){
 		if(DEBUG_LOG)
 			SLOGE("------detect SecureBoot-----");
-		property_set("sys.secureboot","true");
+		property_set("vendor.secureboot","true");
 	}else{
 		if(DEBUG_LOG)
 			SLOGE("------detect not SecureBoot---");
-		property_set("sys.secureboot","false");
+		property_set("vendor.secureboot","false");
 	}
 	close(fd);
 }
@@ -928,7 +928,7 @@ int main( int argc, char *argv[] )
     //get hid data
     rknand_sys_storage_test_hid();
     SLOGE("Get HID data:%s", hid_buf_idb);
-    property_set("persist.sys.hid", hid_buf_idb[0] ? hid_buf_idb : "");
+    property_set("persist.vendor.sys.hid", hid_buf_idb[0] ? hid_buf_idb : "");
 
 	if(SERIALNO_FROM_IDB)//read serialno form idb
 	{
