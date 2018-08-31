@@ -581,7 +581,7 @@ int store_metadata_forgpu()
 		SLOGE("---%s open failed\n",GPU_METADATA_PATH);
 		return -1;
 	}
-	sprintf(buf,"%s\n%s\n%s\n%s\n%s\n","[android.view.cts]","view_cts=0","big_scale=0","[android.autofillservice.cts]","is_auto_fill=0");
+	sprintf(buf,"%s\n%s\n%s\n%s\n%s\n%s\n%s\n","[android.view.cts]","view_cts=0","big_scale=0","[android.autofillservice.cts]","is_auto_fill=0","[android.uirendering.cts]","opengl=0");
 	//SLOGE("---store_metadata_forgpu,buf=%s\n",buf);
 	fputs(buf,mac);
 	fclose(mac);
