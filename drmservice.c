@@ -414,7 +414,7 @@ int vendor_storage_read_sn(void)
 	uint16 len;
 	struct rk_vendor_req req;
     memset(sn_buf_idb,0,sizeof(sn_buf_idb));
-	int sys_fd = open("/dev/vendor_storage",O_RDWR,0);
+	int sys_fd = open("/dev/vendor_storage",O_RDONLY,0);
 	if(sys_fd < 0){
 		SLOGE("vendor_storage open fail\n");		
 		goto try_drmboot;
