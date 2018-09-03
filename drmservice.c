@@ -574,7 +574,7 @@ int store_serialno(char* serialno)
 int store_metadata_forgpu()
 {
 	FILE *mac = NULL;
-	char buf[100];
+	char buf[200];
 	mac = fopen(GPU_METADATA_PATH, "w+");
 	if(mac == NULL)
 	{
