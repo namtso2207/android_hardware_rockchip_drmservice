@@ -28,7 +28,6 @@
 #define DEVICE_SERIALNO "/data/vendor/serialno"
 #define USB_SERIAL_PATH "/sys/class/android_usb/android0/iSerial"
 #define USB_SERIAL_PATH1 "/config/usb_gadget/g1/strings/0x409/serialnumber"
-#define GPU_METADATA_PATH "/data/ota/view_cts.ini"
 
 extern int init_module(void *, unsigned long, const char *);
 extern int delete_module(const char *, unsigned int);
@@ -570,25 +569,6 @@ int store_serialno(char* serialno)
 	return 0;
 }
 
-int store_metadata_forgpu()
-{
-	FILE *mac = NULL;
-	char buf[200];
-	mac = fopen(GPU_METADATA_PATH, "w+");
-	if(mac == NULL)
-	{
-		SLOGE("---%s open failed\n",GPU_METADATA_PATH);
-		return -1;
-	}
-	sprintf(buf,"%s\n%s\n%s\n%s\n%s\n%s\n%s\n","[android.view.cts]","view_cts=0","big_scale=0","[android.autofillservice.cts]","is_auto_fill=0","[android.uirendering.cts]","opengl=0");
-	//SLOGE("---store_metadata_forgpu,buf=%s\n",buf);
-	fputs(buf,mac);
-	fclose(mac);
-	chmod(GPU_METADATA_PATH,S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IWOTH);
-	return 0;
-
-}
-
 int get_serialno_cached(char * result,int len)
 {
         int fd,readlen;
@@ -964,7 +944,7 @@ int main( int argc, char *argv[] )
 			copy_oem();
 		}
 	}
-	store_metadata_forgpu();
+	//store_metadata_forgpu();
 
 	//read_region_tag();//add by xzj to add property ro.board.zone read from flash
 	//rknand_sys_storage_vendor_sector_store();
