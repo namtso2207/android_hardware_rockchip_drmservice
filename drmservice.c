@@ -15,7 +15,7 @@
 
 #include <dirent.h>
 #include <sys/stat.h>
-
+#include <regex.h>
 
 #define LOG_TAG "DrmService"
 
@@ -28,6 +28,9 @@
 #define DEVICE_SERIALNO "/data/vendor/serialno"
 #define USB_SERIAL_PATH "/sys/class/android_usb/android0/iSerial"
 #define USB_SERIAL_PATH1 "/config/usb_gadget/g1/strings/0x409/serialnumber"
+
+#define SERIALNO_PATTERN "^[A-Za-z0-9]+$"
+#define SERIALNO_COUNT 1
 
 extern int init_module(void *, unsigned long, const char *);
 extern int delete_module(const char *, unsigned int);
@@ -538,6 +541,24 @@ static int rmmod(const char *modname)
 	return ret;
 }
 
+// return 0, which means invalid
+int is_serialno_valid(char* serialno)
+{
+    regex_t regex;
+    int ret = regcomp(&regex, SERIALNO_PATTERN, REG_EXTENDED);
+    if (ret != 0) {
+        regfree(&regex);
+        SLOGE("regex init failed!");
+        return 0;
+    }
+
+    regmatch_t pm[SERIALNO_COUNT];
+    memset(pm, 0, sizeof(regmatch_t) * SERIALNO_COUNT);
+    ret = regexec(&regex, serialno, SERIALNO_COUNT, pm, 0);
+    regfree(&regex);
+    return !ret == REG_NOMATCH;
+}
+
 int store_serialno(char* serialno)
 {
 	FILE *mac = NULL;
@@ -913,9 +934,10 @@ int main( int argc, char *argv[] )
 	{
         generate_device_serialno(10,sn_buf_auto);
         vendor_storage_read_sn();
-        property_set("vendor.serialno", sn_buf_idb[0] ? sn_buf_idb : sn_buf_auto);
-        sn_buf_idb[0] ? write_serialno2kernel(sn_buf_idb) : write_serialno2kernel(sn_buf_auto) ;
-        SLOGE("get serialno from idb,serialno = %s",sn_buf_idb[0] ? sn_buf_idb : sn_buf_auto);
+        int serialno_valid = is_serialno_valid(sn_buf_idb);
+        property_set("vendor.serialno", serialno_valid ? sn_buf_idb : sn_buf_auto);
+        write_serialno2kernel(serialno_valid ? sn_buf_idb : sn_buf_auto);
+        SLOGE("get serialno from idb,serialno = %s", serialno_valid ? sn_buf_idb : sn_buf_auto);
 	}
 	else//auto generate serialno
 	{
