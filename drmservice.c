@@ -32,12 +32,14 @@
 #define SERIALNO_PATTERN "^[A-Za-z0-9]+$"
 #define SERIALNO_COUNT 1
 
+#define SERIALNO_BUF_LEN 33
+
 extern int init_module(void *, unsigned long, const char *);
 extern int delete_module(const char *, unsigned int);
 
-static char sn_buf_auto[32] = {0};
-static char sn_buf_idb[33] = {0};
-static char hid_buf_idb[33] = {0};
+static char sn_buf_auto[SERIALNO_BUF_LEN] = {0};
+static char sn_buf_idb[SERIALNO_BUF_LEN] = {0};
+static char hid_buf_idb[SERIALNO_BUF_LEN] = {0};
 
 //add by xzj to support DRM,including read SN,read userdefine data, auto SN,detect keybox
 typedef		unsigned short	  uint16;
@@ -426,7 +428,8 @@ int vendor_storage_read_sn(void)
 	req.len = RKNAND_SYS_STORGAE_DATA_LEN; /* max read length to read*/	
 	ret = ioctl(sys_fd, VENDOR_READ_IO, &req);
 	close(sys_fd);
-	rknand_print_hex_data("vendor read:", (uint32*)req.data, req.len/4 + 3);
+	if (DEBUG_LOG)
+        rknand_print_hex_data("vendor read:", (uint32*)req.data, req.len/4 + 3);
 	/* return req->len is the real data length stored in the NV-storage */	
 	if(ret){
 		SLOGE("vendor read error\n");			
@@ -443,8 +446,8 @@ int vendor_storage_read_sn(void)
 	goto try_drmboot;
     }	
     memcpy(sn_buf_idb,req.data,len);
-    SLOGE("vendor read sn_buf_idb:%s\n",sn_buf_idb);
-    //property_set("vendor.serialno",sn_buf_idb);   
+    if (DEBUG_LOG)
+        SLOGD("vendor read sn_buf_idb:%s\n",sn_buf_idb);
     return 0;
 
 try_drmboot:
@@ -452,6 +455,33 @@ try_drmboot:
     rknand_sys_storage_test_sn(); 
     return 0;
 }
+
+int vendor_storage_write_sn(const char* sn)
+{
+    if (DEBUG_LOG)
+        SLOGD("save SN: %s to IDB.\n", sn);
+    uint32 i;
+    int ret ;
+    uint16 len;
+    struct rk_vendor_req req;
+    int sys_fd = open("/dev/vendor_storage",O_RDONLY,0);
+    if(sys_fd < 0){
+	    SLOGE("vendor_storage open fail!\n");
+        return -1;
+    }
+    req.tag = VENDOR_REQ_TAG;
+    req.id = VENDOR_SN_ID;
+    req.len = RKNAND_SYS_STORGAE_DATA_LEN;
+    memcpy(req.data, sn, SERIALNO_BUF_LEN);
+    ret = ioctl(sys_fd, VENDOR_WRITE_IO, &req);
+    close(sys_fd);
+    if(ret){
+        SLOGE("error in saving SN to IDB.\n");
+        return -1;
+    }
+    return 0;
+}
+
 /*
 read user defined data from  IDB3, from 32-512bit
 */
@@ -919,7 +949,7 @@ void copy_oem()
  */
 int main( int argc, char *argv[] )
 {
-	SLOGE("----------------running drmservice---------------");
+	SLOGD("----------------running drmservice---------------");
 	char prop_board_platform[PROPERTY_VALUE_MAX];
 	char propbuf_copy_oem[PROPERTY_VALUE_MAX];
 	property_get("ro.board.platform", prop_board_platform, "");
@@ -927,24 +957,32 @@ int main( int argc, char *argv[] )
 
     //get hid data
     rknand_sys_storage_test_hid();
-    SLOGE("Get HID data:%s", hid_buf_idb);
+    SLOGD("Get HID data:%s", hid_buf_idb);
     property_set("persist.vendor.sys.hid", hid_buf_idb[0] ? hid_buf_idb : "");
 
 	if(SERIALNO_FROM_IDB)//read serialno form idb
 	{
-        generate_device_serialno(10,sn_buf_auto);
         vendor_storage_read_sn();
-        int serialno_valid = is_serialno_valid(sn_buf_idb);
-        property_set("vendor.serialno", serialno_valid ? sn_buf_idb : sn_buf_auto);
-        write_serialno2kernel(serialno_valid ? sn_buf_idb : sn_buf_auto);
-        SLOGE("get serialno from idb,serialno = %s", serialno_valid ? sn_buf_idb : sn_buf_auto);
+        if (is_serialno_valid(sn_buf_idb)) {
+            property_set("vendor.serialno", sn_buf_idb);
+            write_serialno2kernel(sn_buf_idb);
+            SLOGD("get serialno from idb,serialno = %s", sn_buf_idb);
+        } else {
+            goto RANDOM_SN;
+        }
 	}
 	else//auto generate serialno
 	{
-		generate_device_serialno(10,sn_buf_auto);
-		property_set("vendor.serialno", sn_buf_auto[0] ? sn_buf_auto : "");
-       		 write_serialno2kernel(sn_buf_auto);
-		SLOGE("auto generate serialno,serialno = %s",sn_buf_auto);
+RANDOM_SN:
+        generate_device_serialno(10, sn_buf_auto);
+        property_set("vendor.serialno", sn_buf_auto);
+        write_serialno2kernel(sn_buf_auto);
+        if (DEBUG_LOG)
+            SLOGD("auto generate serialno,serialno = %s",sn_buf_auto);
+        // Save sn to vendor storage
+        const char vendor_sn[SERIALNO_BUF_LEN];
+        memcpy(vendor_sn, sn_buf_auto, sizeof(sn_buf_auto));
+        vendor_storage_write_sn(vendor_sn);
 	}
 	/*bool keybox=detect_keybox();
 	if(keybox==true)
