@@ -689,7 +689,7 @@ bail:
     }
     result[len]='\0';
     store_serialno(result);
-SLOGE("generate_device_serialno,len =%d,result=%s",len,result);
+    SLOGE("generate_device_serialno,len =%d,result=%s",len,result);
 }
 
 int write_serialno2kernel(char*result)
@@ -915,6 +915,48 @@ if (can_del)
 free(root_dir_abs_path);
 }
 
+int value_in_cmdline(char *value) {
+    int fd;
+    char buf[2048];
+    fd = open("/proc/cmdline", O_RDONLY);
+    if (fd < 0) {
+        SLOGE("open /proc/cmdline failed!");
+        close(fd);
+        return -1;
+    }
+    read(fd, buf, sizeof(buf) - 1);
+    if (strstr(buf, value) != NULL) {
+        close(fd);
+        return 0;
+    } else {
+        close(fd);
+        return -1;
+    }
+}
+
+/**
+ * ro.serialno is exported by cmdline which from cpu_id or vendor_storage,
+ * if it is empty or mismatch with sn_buf, update it.
+ */
+void update_serialno(char *sn_buf)
+{
+    // serialno is empty or different with vendor_storage,
+    // save new sn_buf to vendor_storage
+    if (value_in_cmdline(sn_buf) != 0) {
+        SLOGD("save serialno: %s", sn_buf);
+        const char vendor_sn[SERIALNO_BUF_LEN];
+        memcpy(vendor_sn, sn_buf_auto, sizeof(sn_buf_auto));
+        vendor_storage_write_sn(vendor_sn);
+        property_set("vendor.serialno", sn_buf);
+        write_serialno2kernel(sn_buf);
+    } else {
+        // keep the SN read from idb is same as from cmdline.
+        // skip property_set if they are same.
+        // otherwish adbd will restart and cause adb offline.
+        SLOGE("new sn is same as old, skip prop_set and update!");
+    }
+}
+
 /**
 *  User cannot del or modify the content that copyed form '/oem/pre_set',
 *  only '/oem/pre_set_del' can do that.
@@ -949,24 +991,16 @@ int main( int argc, char *argv[] )
     {
         vendor_storage_read_sn();
         if (is_serialno_valid(sn_buf_idb)) {
-            property_set("vendor.serialno", sn_buf_idb);
-            write_serialno2kernel(sn_buf_idb);
-            SLOGD("get serialno from idb,serialno = %s", sn_buf_idb);
+            update_serialno(sn_buf_idb);
         } else {
             goto RANDOM_SN;
         }
     }
     else//auto generate serialno
     {
-        RANDOM_SN:
+RANDOM_SN:
         generate_device_serialno(10, sn_buf_auto);
-        property_set("vendor.serialno", sn_buf_auto);
-        write_serialno2kernel(sn_buf_auto);
-        if (DEBUG_LOG) SLOGD("auto generate serialno,serialno = %s",sn_buf_auto);
-        // Save sn to vendor storage
-        const char vendor_sn[SERIALNO_BUF_LEN];
-        memcpy(vendor_sn, sn_buf_auto, sizeof(sn_buf_auto));
-        vendor_storage_write_sn(vendor_sn);
+        update_serialno(sn_buf_auto);
     }
     /*bool keybox=detect_keybox();
     if(keybox==true)
@@ -979,7 +1013,7 @@ int main( int argc, char *argv[] )
     property_set("drm.service.enabled","false");
     SLOGE("detect keybox disabled");
 }*/
-    detect_secure_boot();
+    //detect_secure_boot();
     //Only set 'ro.boot.copy_oem = true', run this.
     if (strcmp(propbuf_copy_oem, "true") == 0) {
         char prop_buf[PROPERTY_VALUE_MAX];
