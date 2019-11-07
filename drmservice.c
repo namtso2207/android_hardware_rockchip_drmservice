@@ -419,7 +419,7 @@ int vendor_storage_read_sn(void)
     memset(sn_buf_idb,0,sizeof(sn_buf_idb));
     int sys_fd = open("/dev/vendor_storage",O_RDONLY,0);
     if(sys_fd < 0){
-        SLOGE("vendor_storage open fail\n");
+        SLOGE("vendor_storage open fail %s\n", strerror(errno));
         goto try_drmboot;
     }
 
@@ -463,7 +463,7 @@ int vendor_storage_write_sn(const char* sn)
     struct rk_vendor_req req;
     int sys_fd = open("/dev/vendor_storage",O_RDONLY,0);
     if(sys_fd < 0){
-        SLOGE("vendor_storage open fail!\n");
+        SLOGE("vendor_storage open fail %s\n", strerror(errno));
         return -1;
     }
     req.tag = VENDOR_REQ_TAG;
@@ -940,10 +940,11 @@ int value_in_cmdline(char *value) {
  */
 void update_serialno(char *sn_buf)
 {
+#ifdef ENABLE_CMDLINE_VERIFY
     // serialno is empty or different with vendor_storage,
     // save new sn_buf to vendor_storage
     if (value_in_cmdline(sn_buf) != 0) {
-        SLOGD("save serialno: %s", sn_buf);
+        SLOGD("verify: save serialno: %s", sn_buf);
         const char vendor_sn[SERIALNO_BUF_LEN];
         memcpy(vendor_sn, sn_buf_auto, sizeof(sn_buf_auto));
         vendor_storage_write_sn(vendor_sn);
@@ -955,6 +956,14 @@ void update_serialno(char *sn_buf)
         // otherwish adbd will restart and cause adb offline.
         SLOGE("new sn is same as old, skip prop_set and update!");
     }
+#else
+    SLOGD("save serialno: %s", sn_buf);
+    const char vendor_sn[SERIALNO_BUF_LEN];
+    memcpy(vendor_sn, sn_buf_auto, sizeof(sn_buf_auto));
+    vendor_storage_write_sn(vendor_sn);
+    property_set("vendor.serialno", sn_buf);
+    write_serialno2kernel(sn_buf);
+#endif
 }
 
 /**

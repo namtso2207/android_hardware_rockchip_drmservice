@@ -21,6 +21,11 @@ LOCAL_CPPFLAGS := \
     -Wunused-variable \
     -Wmacro-redefined
 
+# API 28 -> Android 9.0
+ifeq (1,$(strip $(shell expr $(PLATFORM_SDK_VERSION) \>= 29)))
+LOCAL_CFLAGS += -DENABLE_CMDLINE_VERIFY
+endif
+
 LOCAL_SHARED_LIBRARIES := libhardware_legacy libnetutils liblog
 
 include $(BUILD_EXECUTABLE)
