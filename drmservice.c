@@ -571,6 +571,10 @@ static int rmmod(const char *modname)
 // return 0, which means invalid
 int is_serialno_valid(char* serialno)
 {
+    if ((strlen(serialno) < 6) || (strlen(serialno) > 14)) {
+        SLOGE("serialno is too short or too long, please check!");
+        return 0;
+    }
     regex_t regex;
     int ret = regcomp(&regex, SERIALNO_PATTERN, REG_EXTENDED);
     if (ret != 0) {
@@ -925,7 +929,12 @@ int value_in_cmdline(char *value) {
         return -1;
     }
     read(fd, buf, sizeof(buf) - 1);
-    if (strstr(buf, value) != NULL) {
+    if (DEBUG_LOG) {
+        SLOGE("cmdline: %s", &buf);
+        SLOGE("serialno: %s", value);
+    }
+    char *ret = strstr(&buf, value);
+    if (ret != NULL) {
         close(fd);
         return 0;
     } else {
@@ -943,7 +952,11 @@ void update_serialno(char *sn_buf)
 #ifdef ENABLE_CMDLINE_VERIFY
     // serialno is empty or different with vendor_storage,
     // save new sn_buf to vendor_storage
-    if (value_in_cmdline(sn_buf) != 0) {
+    int32_t len_sn_buf = strlen(sn_buf);
+    len_sn_buf += strlen("androidboot.serialno=");
+    char serialno_cmdline[len_sn_buf];
+    snprintf(serialno_cmdline, len_sn_buf, "androidboot.serialno=%s", sn_buf);
+    if (value_in_cmdline(serialno_cmdline) != 0) {
         SLOGD("verify: save serialno: %s", sn_buf);
         const char vendor_sn[SERIALNO_BUF_LEN];
         memcpy(vendor_sn, sn_buf_auto, sizeof(sn_buf_auto));
@@ -954,7 +967,7 @@ void update_serialno(char *sn_buf)
         // keep the SN read from idb is same as from cmdline.
         // skip property_set if they are same.
         // otherwish adbd will restart and cause adb offline.
-        SLOGE("new sn is same as old, skip prop_set and update!");
+        SLOGI("new sn is same as old, skip prop_set and update!");
     }
 #else
     SLOGD("save serialno: %s", sn_buf);
