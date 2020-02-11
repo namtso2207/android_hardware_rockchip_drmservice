@@ -466,10 +466,12 @@ int vendor_storage_write_sn(const char* sn)
         SLOGE("vendor_storage open fail %s\n", strerror(errno));
         return -1;
     }
+    memset(&req, 0, sizeof(req));
     req.tag = VENDOR_REQ_TAG;
     req.id = VENDOR_SN_ID;
-    req.len = RKNAND_SYS_STORGAE_DATA_LEN;
-    memcpy(req.data, sn, SERIALNO_BUF_LEN);
+    req.len = strlen(sn);
+    memcpy(req.data, sn, strlen(sn));
+    if (DEBUG_LOG) rknand_print_hex_data("vendor write:", (uint32*)req.data, req.len/4+3);
     ret = ioctl(sys_fd, VENDOR_WRITE_IO, &req);
     close(sys_fd);
     if(ret){
@@ -957,9 +959,9 @@ void update_serialno(char *sn_buf)
     char serialno_cmdline[len_sn_buf];
     snprintf(serialno_cmdline, len_sn_buf, "androidboot.serialno=%s", sn_buf);
     if (value_in_cmdline(serialno_cmdline) != 0) {
-        SLOGD("verify: save serialno: %s (%d)", sn_buf, sizeof(sn_buf));
-        const char vendor_sn[SERIALNO_BUF_LEN];
-        memcpy(vendor_sn, sn_buf, sizeof(sn_buf));
+        SLOGD("verify: save serialno: %s (%d)", sn_buf, strlen(sn_buf));
+        const char vendor_sn[strlen(sn_buf)];
+        memcpy(vendor_sn, sn_buf, strlen(sn_buf));
         vendor_storage_write_sn(vendor_sn);
         property_set("vendor.serialno", sn_buf);
         write_serialno2kernel(sn_buf);
@@ -970,9 +972,9 @@ void update_serialno(char *sn_buf)
         SLOGI("new sn is same as old, skip prop_set and update!");
     }
 #else
-    SLOGD("verify: save serialno: %s (%d)", sn_buf, sizeof(sn_buf));
-    const char vendor_sn[SERIALNO_BUF_LEN];
-    memcpy(vendor_sn, sn_buf, sizeof(sn_buf));
+    SLOGD("verify: save serialno: %s (%d)", sn_buf, strlen(sn_buf));
+    const char vendor_sn[strlen(sn_buf)];
+    memcpy(vendor_sn, sn_buf, strlen(sn_buf));
     vendor_storage_write_sn(vendor_sn);
     property_set("vendor.serialno", sn_buf);
     write_serialno2kernel(sn_buf);
@@ -1013,7 +1015,8 @@ int main( int argc, char *argv[] )
     {
         vendor_storage_read_sn();
         if (is_serialno_valid(sn_buf_idb)) {
-            update_serialno(sn_buf_idb);
+            property_set("vendor.serialno", sn_buf_idb);
+            write_serialno2kernel(sn_buf_idb);
         } else {
             goto RANDOM_SN;
         }
