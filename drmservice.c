@@ -960,8 +960,7 @@ void update_serialno(char *sn_buf)
     snprintf(serialno_cmdline, len_sn_buf, "androidboot.serialno=%s", sn_buf);
     if (value_in_cmdline(serialno_cmdline) != 0) {
         SLOGD("verify: save serialno: %s (%d)", sn_buf, strlen(sn_buf));
-        const char vendor_sn[strlen(sn_buf)];
-        memcpy(vendor_sn, sn_buf, strlen(sn_buf));
+        const char *vendor_sn = sn_buf;
         vendor_storage_write_sn(vendor_sn);
         property_set("vendor.serialno", sn_buf);
         write_serialno2kernel(sn_buf);
@@ -973,8 +972,7 @@ void update_serialno(char *sn_buf)
     }
 #else
     SLOGD("verify: save serialno: %s (%d)", sn_buf, strlen(sn_buf));
-    const char vendor_sn[strlen(sn_buf)];
-    memcpy(vendor_sn, sn_buf, strlen(sn_buf));
+    const char *vendor_sn = sn_buf;
     vendor_storage_write_sn(vendor_sn);
     property_set("vendor.serialno", sn_buf);
     write_serialno2kernel(sn_buf);
