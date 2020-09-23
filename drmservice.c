@@ -19,7 +19,6 @@
 
 #define LOG_TAG "DrmService"
 
-
 #define WIFI_CHIP_TYPE_PATH         "/sys/class/rkwifi/chip"
 #define WIFI_MAC_FILENAME   "/sys/class/net/wlan0/address"
 #define DRIVER_MODULE_PATH  "/system/lib/modules/wlan.ko"
@@ -923,7 +922,7 @@ free(root_dir_abs_path);
 
 int value_in_cmdline(char *value) {
     int fd;
-    char buf[2048];
+    char buf[2048]={0};
     fd = open("/proc/cmdline", O_RDONLY);
     if (fd < 0) {
         SLOGE("open /proc/cmdline failed!");
@@ -1013,8 +1012,12 @@ int main( int argc, char *argv[] )
     {
         vendor_storage_read_sn();
         if (is_serialno_valid(sn_buf_idb)) {
+#ifdef ENABLE_CMDLINE_VERIFY
+            update_serialno(sn_buf_idb);
+#else
             property_set("vendor.serialno", sn_buf_idb);
             write_serialno2kernel(sn_buf_idb);
+#endif
         } else {
             goto RANDOM_SN;
         }
