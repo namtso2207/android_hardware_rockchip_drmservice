@@ -25,6 +25,11 @@ ifeq (1,$(strip $(shell expr $(PLATFORM_SDK_VERSION) \>= 29)))
 LOCAL_CFLAGS += -DENABLE_CMDLINE_VERIFY
 endif
 
+# Verify sn with pattern "^[A-Za-z0-9]+$"
+ifeq ($(BUILD_WITH_GOOGLE_MARKET), true)
+LOCAL_CFLAGS += -DENABLE_SN_VERIFY
+endif
+
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)

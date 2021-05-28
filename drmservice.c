@@ -572,6 +572,7 @@ static int rmmod(const char *modname)
 // return 0, which means invalid
 int is_serialno_valid(char* serialno)
 {
+#ifdef ENABLE_SN_VERIFY
     if ((strlen(serialno) < 6) || (strlen(serialno) > 14)) {
         SLOGE("serialno is too short or too long, please check!");
         return 0;
@@ -589,6 +590,9 @@ int is_serialno_valid(char* serialno)
     ret = regexec(&regex, serialno, SERIALNO_COUNT, pm, 0);
     regfree(&regex);
     return !ret == REG_NOMATCH;
+#else
+    return 1;
+#endif
 }
 
 int store_serialno(char* serialno)
