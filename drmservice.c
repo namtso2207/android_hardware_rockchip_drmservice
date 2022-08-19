@@ -33,6 +33,7 @@
 #define SERIALNO_COUNT 1
 
 #define SERIALNO_BUF_LEN 33
+#define ENABLE_CMDLINE_VERIFY
 
 extern int init_module(void *, unsigned long, const char *);
 extern int delete_module(const char *, unsigned int);
