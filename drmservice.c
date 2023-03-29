@@ -16,6 +16,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <regex.h>
+#include "vendor_storage.h"
 
 #define LOG_TAG "DrmService"
 
@@ -42,7 +43,7 @@ static char hid_buf_idb[SERIALNO_BUF_LEN] = {0};
 
 //add by xzj to support DRM,including read SN,read userdefine data, auto SN,detect keybox
 typedef		unsigned short	  uint16;
-typedef		unsigned long	    uint32;
+typedef		unsigned int	    uint32;
 typedef		unsigned char	    uint8;
 
 #define RKNAND_SYS_STORGAE_DATA_LEN 512
@@ -416,20 +417,14 @@ int vendor_storage_read_sn(void)
     uint16 len;
     struct rk_vendor_req req;
     memset(sn_buf_idb,0,sizeof(sn_buf_idb));
-    int sys_fd = open("/dev/vendor_storage",O_RDONLY,0);
-    if(sys_fd < 0){
-        SLOGE("vendor_storage open fail %s\n", strerror(errno));
-        goto try_drmboot;
-    }
 
     req.tag = VENDOR_REQ_TAG;
     req.id = VENDOR_SN_ID;
     req.len = RKNAND_SYS_STORGAE_DATA_LEN; /* max read length to read*/
-    ret = ioctl(sys_fd, VENDOR_READ_IO, &req);
-    close(sys_fd);
+    ret = emmc_vendor_read(req.id,req.data,req.len);
     if (DEBUG_LOG) rknand_print_hex_data("vendor read:", (uint32*)req.data, req.len/4 + 3);
     /* return req->len is the real data length stored in the NV-storage */
-    if(ret){
+    if(ret < 0){
         SLOGE("vendor read error\n");
         goto try_drmboot;
     }
@@ -460,20 +455,14 @@ int vendor_storage_write_sn(const char* sn)
     int ret ;
     uint16 len;
     struct rk_vendor_req req;
-    int sys_fd = open("/dev/vendor_storage",O_RDONLY,0);
-    if(sys_fd < 0){
-        SLOGE("vendor_storage open fail %s\n", strerror(errno));
-        return -1;
-    }
     memset(&req, 0, sizeof(req));
     req.tag = VENDOR_REQ_TAG;
     req.id = VENDOR_SN_ID;
     req.len = strlen(sn);
     memcpy(req.data, sn, strlen(sn));
     if (DEBUG_LOG) rknand_print_hex_data("vendor write:", (uint32*)req.data, req.len/4+3);
-    ret = ioctl(sys_fd, VENDOR_WRITE_IO, &req);
-    close(sys_fd);
-    if(ret){
+    ret = emmc_vendor_write(req.id,req.data,req.len);
+    if(ret < 0){
         SLOGE("error in saving SN to IDB.\n");
         return -1;
     }
@@ -834,7 +823,7 @@ void copy_file(const char *old_path,const char *new_path)
 
     while(!feof(in))
     {
-        bzero(buf,sizeof(buf));
+        memset(buf,0,sizeof(buf));
         len=fread(&buf,1,sizeof(buf)-1,in);
         fwrite(&buf,len,1,out);
     }
@@ -855,7 +844,7 @@ char *get_abs_path(const char *dir,const char *path)
         SLOGE("malloc fail\n");
         return NULL;
     }
-    bzero(rel_path,d_len+p_len+2);
+    memset(rel_path,0,d_len+p_len+2);
 
     strncpy(rel_path,dir,d_len);
     strncat(rel_path,"/",sizeof(char));
@@ -1007,6 +996,7 @@ int main( int argc, char *argv[] )
     property_get("ro.board.platform", prop_board_platform, "");
     property_get("ro.boot.copy_oem", propbuf_copy_oem, "");
 
+    vendor_storage_init();
     //get hid data
     rknand_sys_storage_test_hid();
     SLOGD("Get HID data:%s", hid_buf_idb);
