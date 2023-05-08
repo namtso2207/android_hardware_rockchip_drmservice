@@ -107,7 +107,7 @@ struct rk_vendor_req {
 
 void rknand_print_hex_data(uint8 *s,uint32 * buf,uint32 len)
 {
-    uint32 i,j,count;
+    uint32 i;
     SLOGE("%s",s);
     for(i=0;i<len;i+=4)
     {
@@ -123,216 +123,11 @@ typedef struct tagRKNAND_SYS_STORGAE
 }RKNAND_SYS_STORGAE;
 
 /*
-disable secureboot/keybox
-*/
-int rknand_sys_storage_secure_boot_disable(void)
-{
-    uint32 i;
-    int ret ;
-    RKNAND_SYS_STORGAE sysData;
-
-    int sys_fd = open("/dev/rknand_sys_storage",O_RDWR,0);
-    if(sys_fd < 0){
-        SLOGE("rknand_sys_storage open fail\n");
-        return -1;
-    }
-    sysData.tag = DIASBLE_SECURE_BOOT_OP_TAG;
-    sysData.len = RKNAND_SYS_STORGAE_DATA_LEN;
-
-    ret = ioctl(sys_fd, RKNAND_DIASBLE_SECURE_BOOT, &sysData);
-    if(ret){
-        SLOGE("disable secure boot error\n");
-        return -1;
-    }
-    return 0;
-}
-
-/*
-enable secureboot/keybox
-*/
-int rknand_sys_storage_secure_boot_enable(void)
-{
-    uint32 i;
-    int ret ;
-    RKNAND_SYS_STORGAE sysData;
-
-    int sys_fd = open("/dev/rknand_sys_storage",O_RDWR,0);
-    if(sys_fd < 0){
-        SLOGE("rknand_sys_storage open fail\n");
-        return -1;
-    }
-    sysData.tag = ENASBLE_SECURE_BOOT_OP_TAG;
-    sysData.len = RKNAND_SYS_STORGAE_DATA_LEN;
-
-    ret = ioctl(sys_fd, RKNAND_ENASBLE_SECURE_BOOT, &sysData);
-    if(ret){
-        SLOGE("enable secure boot error\n");
-        return -1;
-    }
-    return 0;
-}
-
-
-/*
-demo for load data in vendor sector
-*/
-int rknand_sys_storage_vendor_sector_load(void)
-{
-    uint32 i;
-    int ret ;
-    RKNAND_SYS_STORGAE sysData;
-
-    int sys_fd = open("/dev/rknand_sys_storage",O_RDWR,0);
-    if(sys_fd < 0){
-        SLOGE("rknand_sys_storage open fail\n");
-        return -1;
-    }
-
-    sysData.tag = VENDOR_SECTOR_OP_TAG;
-    sysData.len = RKNAND_SYS_STORGAE_DATA_LEN-8;
-
-    ret = ioctl(sys_fd, RKNAND_GET_VENDOR_SECTOR0, &sysData);
-    rknand_print_hex_data("vendor_sector load:",(uint32*)sysData.data,32);
-    if(ret){
-        SLOGE("get vendor_sector error\n");
-        return -1;
-    }
-    return 0;
-}
-
-
-/*
-demo for store data in vendor sector
-*/
-int rknand_sys_storage_vendor_sector_store(void)
-{
-    uint32 i;
-    int ret ;
-    RKNAND_SYS_STORGAE sysData;
-
-    int sys_fd = open("/dev/rknand_sys_storage",O_RDWR,0);
-    if(sys_fd < 0){
-        SLOGE("rknand_sys_storage open fail\n");
-        return -1;
-    }
-    sysData.tag = VENDOR_SECTOR_OP_TAG;
-    sysData.len = RKNAND_SYS_STORGAE_DATA_LEN - 8;
-    for(i=0;i<126;i++)
-    {
-        sysData.data[i] = i;
-    }
-    rknand_print_hex_data("vendor_sector save:",(uint32*)sysData.data,32);
-    ret = ioctl(sys_fd, RKNAND_STORE_VENDOR_SECTOR0, &sysData);
-    close(sys_fd);
-    if(ret){
-        SLOGE("save vendor_sector error\n");
-        return -1;
-    }
-    return 0;
-}
-
-/*
-flush flash cache
-*/
-int rknand_sys_storage_dev_cache_flush(void)
-{
-    uint32 i;
-    int ret ;
-    RKNAND_SYS_STORGAE sysData;
-
-    int sys_fd = open("/dev/rknand_sys_storage",O_RDWR,0);
-    if(sys_fd < 0){
-        SLOGE("rknand_sys_storage open fail\n");
-        return -1;
-    }
-    sysData.tag = RKNAND_DEV_CACHE_FLUSH;
-    sysData.len = 504;
-    ret = ioctl(sys_fd, RKNAND_DEV_CACHE_FLUSH, &sysData);
-    close(sys_fd);
-    if(ret){
-        SLOGE("dev cache flush error\n");
-        return -1;
-    }
-    return 0;
-}
-
-
-int rknand_sys_storage_lock_loader(void)
-{
-    uint32 i;
-    int ret ;
-    RKNAND_SYS_STORGAE sysData;
-
-    int sys_fd = open("/dev/rknand_sys_storage",O_RDWR,0);
-    if(sys_fd < 0){
-        SLOGE("rknand_sys_storage open fail\n");
-        return -1;
-    }
-    sysData.tag = LOADER_LOCK_UNLOCK_TAG;
-    sysData.len = 0; //这个值是一个密码，用户自己设置，默认这个值为0，没有密码，第一次设置时，这个值会保存，unlock时这个值要匹配
-    ret = ioctl(sys_fd, RKNAND_LOADER_LOCK, &sysData);
-    close(sys_fd);
-    if(ret){
-        SLOGE("dev cache flush error\n");
-        return -1;
-    }
-    return 0;
-}
-
-int rknand_sys_storage_unlock_loader(void)
-{
-    uint32 i;
-    int ret ;
-    RKNAND_SYS_STORGAE sysData;
-
-    int sys_fd = open("/dev/rknand_sys_storage",O_RDWR,0);
-    if(sys_fd < 0){
-        SLOGE("rknand_sys_storage open fail\n");
-        return -1;
-    }
-    sysData.tag = LOADER_LOCK_UNLOCK_TAG;
-    sysData.len = 0; //这个值是一个密码，unlock时要匹配密码，密码不匹配不能unlock，成功unlock后，密码会清除
-    ret = ioctl(sys_fd, RKNAND_LOADER_UNLOCK, &sysData);
-    close(sys_fd);
-    if(ret){
-        SLOGE("dev cache flush error\n");
-        return -1;
-    }
-    return 0;
-}
-
-int rknand_sys_storage_get_loader_status(int * plock_status)
-{
-    uint32 i;
-    int ret ;
-    RKNAND_SYS_STORGAE sysData;
-
-
-    int sys_fd = open("/dev/rknand_sys_storage",O_RDWR,0);
-    if(sys_fd < 0){
-        SLOGE("rknand_sys_storage open fail\n");
-        return -1;
-    }
-    sysData.tag = LOADER_LOCK_UNLOCK_TAG;
-    sysData.len = 0;
-    ret = ioctl(sys_fd, RKNAND_LOADER_STATUS, &sysData);
-    close(sys_fd);
-    if(ret){
-        SLOGE("rknand_sys_storage_get_loader_status error\n");
-        return -1;
-    }
-    *plock_status =  sysData.len;
-    SLOGE("lock_status = %d\n",sysData.len);
-    return 0;
-}
-
-/*
 read SN from IDB3,from 0-31bit
 */
 
 int rknand_sys_storage_test_sn(void)
 {
-    uint32 i;
     int ret;
     uint16 len;
     RKNAND_SYS_STORGAE sysData;
@@ -373,7 +168,6 @@ read HID from IDB3,from 0-31bit
 
 int rknand_sys_storage_test_hid(void)
 {
-    uint32 i;
     int ret;
     uint16 len;
     RKNAND_SYS_STORGAE sysData;
@@ -412,7 +206,6 @@ int rknand_sys_storage_test_hid(void)
 
 int vendor_storage_read_sn(void)
 {
-    uint32 i;
     int ret ;
     uint16 len;
     struct rk_vendor_req req;
@@ -451,9 +244,7 @@ try_drmboot:
 int vendor_storage_write_sn(const char* sn)
 {
     if (DEBUG_LOG) SLOGD("save SN: %s to IDB.\n", sn);
-    uint32 i;
     int ret ;
-    uint16 len;
     struct rk_vendor_req req;
     memset(&req, 0, sizeof(req));
     req.tag = VENDOR_REQ_TAG;
@@ -467,95 +258,6 @@ int vendor_storage_write_sn(const char* sn)
         return -1;
     }
     return 0;
-}
-
-/*
-read user defined data from  IDB3, from 32-512bit
-*/
-void read_region_tag()
-{
-    int ret,i,temp;
-    char region[20];
-    RKNAND_SYS_STORGAE sysData;
-    int sys_fd = open("/dev/rknand_sys_storage",O_RDWR,0);
-    if(sys_fd < 0){
-        SLOGE("rknand_sys_storage open fail\n");
-        property_set("ro.vendor.board.zone","0");
-        SLOGE("open file failed,ro.board.zone set default value 0\n");
-        return;
-    }
-    sysData.tag = VENDOR_SECTOR_OP_TAG;
-    sysData.len = RKNAND_SYS_STORGAE_DATA_LEN-8;
-    ret = ioctl(sys_fd, RKNAND_GET_VENDOR_SECTOR0, &sysData);
-    strncpy(region,sysData.data,20);
-    region[19]='\0';
-    SLOGE("-----read_region_tag,str=%s",region);
-    if(strstr(region,"Archos_Region")!=NULL)
-    {
-        char region_tag[2];
-        region_tag[0]=region[14];
-        region_tag[1]='\0';
-        SLOGE("------get region=%c",region_tag[0]);
-        if(region_tag[0]>='0'&&region_tag[0]<='5')
-        {
-            property_set("ro.vendor.board.zone",region_tag);
-            SLOGE("we set ro.vendor.board.zone to %c\n",region_tag[0]);
-        }
-        else
-        {
-            property_set("ro.vendor.board.zone","0");
-            SLOGE("get SLOGE region tag from flash,not between 0-4,ro.board.zone set default value 0\n");
-        }
-    }
-    else
-    {
-        property_set("ro.vendor.board.zone","0");
-        SLOGE("get SLOGE region tag from flash,not between 0-4,ro.board.zone set default value 0\n");
-    }
-}
-
-int insmod(const char *filename)
-{
-    void *module = NULL;
-    unsigned int size;
-    int ret;
-    struct utsname name;
-    char filename_release[PATH_MAX];
-    memset(&name, 0, sizeof(name));
-    ret = uname(&name);
-    if (ret == 0) {
-        // try insmod filename.x.x.x
-        strncat(filename_release, filename, sizeof(filename_release) - 1);
-        strncat(filename_release, ".", sizeof(filename_release) - 1);
-        strncat(filename_release, name.release, sizeof(filename_release) - 1);
-        module = load_file(filename_release, &size);
-    }
-    if (!module)
-    module = load_file(filename, &size);
-    if (!module)
-    return -1;
-    ret = init_module(module, size, "");
-    free(module);
-    return ret;
-}
-
-
-
-static int rmmod(const char *modname)
-{
-    int ret = -1;
-    int maxtry = 10;
-    while (maxtry-- > 0)
-    {
-        ret = delete_module(modname, O_NONBLOCK | O_EXCL);
-        if (ret < 0 && errno == EAGAIN)
-        usleep(500000);
-        else
-        break;
-    }
-    if (ret != 0)
-    SLOGE("Unable to unload driver module \"%s\": %s\n", modname, strerror(errno));
-    return ret;
 }
 
 // return 0, which means invalid
@@ -627,8 +329,8 @@ int get_serialno_cached(char * result,int len)
         if(DEBUG_LOG) SLOGE("get_serialno_cached,wanted len =%d,but cached len =%d",len,readlen);
         return -1;
     }
-    memcpy(result,buf,readlen);
     buf[readlen]='\0';
+    memcpy(result,buf,readlen);
     close(fd);
     return 0;
 }
@@ -638,12 +340,7 @@ int get_serialno_cached(char * result,int len)
 void generate_device_serialno(int len,char*result)
 {
     int temp=0,rand_bit=0,times =0;
-    int fd,type;
-    char buf[32];
     char value[6][2];
-    const char *bufp;
-    ssize_t nbytes;
-    char path[64];
     unsigned int seed[2]={0,0};
 
     #ifdef DEBUG_RANDOM
@@ -720,74 +417,6 @@ int write_serialno2kernel(char*result)
     return 0;
 }
 
-/*
-detect if secure boot is enabled
-*/
-bool detect_keybox()
-{
-    typedef struct tagDRM_KEY_INFO
-    {
-        uint32 drmtag;           // "DRMK" 0x4B4D5244
-        uint32 drmLen;           // 504
-        uint32 keyBoxEnable;     // 0:disable 1 enable
-        uint32 drmKeyLen;        //0 disable , 1~N : part 1~N
-        uint32 publicKeyLen;     //0 disable , 1:enable
-        uint32 reserved0[(0x40-0x14)/4];
-        uint8  drmKey[0x80];      // key data
-        uint32 reserved2[(0x100-0xC0)/4];
-        uint8  publicKey[0x100];      // key data
-    } DRM_KEY_INFO,*pDRM_KEY_INFO;
-
-    RKNAND_SYS_STORGAE sysData;
-    int ret ;
-    DRM_KEY_INFO * pdrmKey = (DRM_KEY_INFO*)&sysData;
-
-    int sys_fd = open("/dev/rknand_sys_storage",O_RDWR,0);
-    if(sys_fd < 0){
-        SLOGE("rknand_sys_storage open fail\n");
-        return false;
-    }
-    sysData.tag = DRM_KEY_OP_TAG;
-    sysData.len = RKNAND_SYS_STORGAE_DATA_LEN;
-    pdrmKey->drmKeyLen = 128;
-    ret = ioctl(sys_fd, RKNAND_GET_DRM_KEY, &sysData);
-
-    if(ret){
-        SLOGE("get drm key ioctl SLOGE\n");
-        close(sys_fd);
-        return false;
-    }
-
-    if(!pdrmKey->keyBoxEnable){
-        SLOGE("drm keybox disable!!");
-        close(sys_fd);
-        return false;
-    }
-    close(sys_fd);
-    return true;
-}
-
-void detect_secure_boot()
-{
-    int fd;
-    char buf[2048];
-    fd = open("/proc/cmdline", O_RDONLY);
-    if (fd < 0)
-    {
-        if(DEBUG_LOG) SLOGE("------detect_secure_boot() open /proc/cmdline failed!\n");
-        return;
-    }
-    read(fd, buf, sizeof(buf) - 1);
-    if(strstr(buf,"SecureBootCheckOk=1")!=NULL){
-        if(DEBUG_LOG) SLOGE("------detect SecureBoot-----");
-        property_set("vendor.secureboot","true");
-    }else{
-        if(DEBUG_LOG) SLOGE("------detect not SecureBoot---");
-        property_set("vendor.secureboot","false");
-    }
-    close(fd);
-}
-
 void change_path(const char *path)
 {
     SLOGE("Leave %s Successed . . .\n",getcwd(NULL,0));
@@ -803,9 +432,9 @@ void change_path(const char *path)
 void copy_file(const char *old_path,const char *new_path)
 {
     FILE *in,*out;
-    size_t len;
+    size_t len = 0;
     char buf[64];
-    char *p=getcwd(NULL,0);
+    
     SLOGE("start copy file,from %s to %s\n",old_path,new_path);
 
     if((in=fopen(old_path,"rb"))==NULL)
@@ -1022,18 +651,6 @@ RANDOM_SN:
         generate_device_serialno(10, sn_buf_auto);
         update_serialno(sn_buf_auto);
     }
-    /*bool keybox=detect_keybox();
-    if(keybox==true)
-    {
-    property_set("drm.service.enabled","true");
-    SLOGE("detect keybox enabled");
-}
-    else
-    {
-    property_set("drm.service.enabled","false");
-    SLOGE("detect keybox disabled");
-}*/
-    //detect_secure_boot();
     //Only set 'ro.boot.copy_oem = true', run this.
     if (strcmp(propbuf_copy_oem, "true") == 0) {
         char prop_buf[PROPERTY_VALUE_MAX];
@@ -1046,13 +663,5 @@ RANDOM_SN:
     }
 //store_metadata_forgpu();
 
-    //read_region_tag();//add by xzj to add property ro.board.zone read from flash
-    //rknand_sys_storage_vendor_sector_store();
-    //rknand_sys_storage_vendor_sector_load();
-    //rknand_sys_storage_get_loader_status(&status);
-    //rknand_sys_storage_lock_loader();
-    //rknand_sys_storage_get_loader_status(&status);
-    //rknand_sys_storage_unlock_loader();
-    //rknand_sys_storage_get_loader_status(&status);
     return 0;
 }
